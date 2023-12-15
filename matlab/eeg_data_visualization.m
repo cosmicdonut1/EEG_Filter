@@ -1,4 +1,4 @@
-function data_visualization = eeg_data_visualization2(data, step, min_value, max_value, R, sigma, apply_blur)
+function [X, Y, data_visualization] = eeg_data_visualization(data, step, min_value, max_value, R, sigma, apply_blur)
     % data - массив имен электродов и входных значений сигнала на
     % электроде. Вид: {{'name' val}}
     % step - дробный шаг интерполяции
@@ -87,67 +87,10 @@ function data_visualization = eeg_data_visualization2(data, step, min_value, max
     if (apply_blur)
         interpolated_values = imgaussfilt(interpolated_values, sigma);
     end
+	
     % Получаем данные визуализации
     data_visualization = interpolated_values;
 
-    % Вывод на график для отладки
-	
-    debug = true;
-    if (debug)
-	    % Создание графика
-	    figure;
-	    hold on;
-        % Вывод 2D-карты с билинейной интерполяцией
-        colormap(hot);
-        imagesc(X(1, :), Y(:, 1), data_visualization);
-	    % Вывод точек
-	    for i = 1:num_in_points
-	        % Добавление подписей к точкам
-	        plot(x(i), y(i), 'ro', 'MarkerSize', 3, 'MarkerFaceColor', 'r');
-            %scatter(x(i), y(i));
-		    text(x(i), y(i), name{i}, 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
-        end
-	    % Настройка вида графика
-        axis off
-	    xlabel('X');
-	    ylabel('Y');
-        caxis([0, 1]);
-        colorbar;
-        title('Карта визуализации данных ЭЭГ');
-	    hold off;
-    end
-    
-    % Вывод на график для отладки
-    debug = false;
-    if (debug)
-        % creating the countour plot
-        val = val(:);
-        x = x(:);
-        y = y(:);
-        name = name(:);
-        [x_, y_] = meshgrid((0:1:360) * pi / 180, 0:0.01:1);
-        [X_, Y_] = pol2cart(x_, y_);
-        F = scatteredInterpolant(x, y, val, 'natural', 'linear');
-        Z_ = F(X_, Y_);
-        figure
-        contourf(X_, Y_, Z_, 1000, 'LineColor', 'none');
-        title('Карта визуализации данных ЭЭГ');
-        daspect([1 1 1])
-        colormap(hot);
-        set(gca,'XTick', [],  'YTick', [])
-        hold on
-	    % Вывод точек
-	    for i = 1:num_in_points
-	        % Добавление подписей к точкам
-	        plot(x(i), y(i), 'ro', 'MarkerSize', 5, 'MarkerFaceColor', 'r');
-            scatter(x(i), y(i));
-		    text(x(i), y(i), name{i}, 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
-        end    
-
-        caxis([0, 1]);
-        colorbar;
-        hold off;
-    end
 end
 
 % Позиции точек в виде массива для быстроты работы
