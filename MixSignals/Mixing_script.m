@@ -13,10 +13,10 @@ function Mixing_script
     % будущкй тестировки нейросети)
     first_500_rows_EEG_all_epochs = EEG_all_epochs(1:500, :);
     first_500_rows_EMG_all_epochs = EMG_all_epochs(1:500, :);
-    first_500_rows_EOG_all_epichs = EOG_all_epochs(1:500, :);
+    first_500_rows_EOG_all_epochs = EOG_all_epochs(1:500, :);
     save('first_500_rows_EEG_all_epochs.mat', 'first_500_rows_EEG_all_epochs');
     save('first_500_rows_EMG_all_epochs.mat', 'first_500_rows_EMG_all_epochs');
-    save('first_500_rows_EOG_all_epichs.mat', 'first_500_rows_EOG_all_epichs');
+    save('first_500_rows_EOG_all_epochs.mat', 'first_500_rows_EOG_all_epochs');
 
     % Удаляем первые 500 строк из сетов
     EEG_all_epochs = EEG_all_epochs(501:end, :);
@@ -29,29 +29,32 @@ function Mixing_script
 
     % Предполагаем, что у нас есть чистый сигнал EEG и сигнал артефакта, загруженные или сгенерированные ранее
     clean_eeg = EEG_all_epochs;  % чистого сигнала EEG
-    artifact = EMG_all_epochs;  % сигнала артефакта EMG
+    artifact_emg = EMG_all_epochs;  % сигнала артефакта EMG
     artifact_eog = EOG_all_epochs; % сигнала артефакта EOG
     
     % Желаемое значение SNR в децибелах
     desired_snr_db = -5;  % Например, -5 дБ
 
     % Создаем зашумленный сигнал
-    noisy_eeg_emg = generate_noisy_data(clean_eeg, artifact, desired_snr_db);
+    noisy_eeg_emg = generate_noisy_data(clean_eeg, artifact_emg, 0, desired_snr_db);
     clean_eeg = clean_eeg(1:2900, :);
-    noisy_eeg_eog = generate_noisy_data(clean_eeg, artifact_eog, desired_snr_db);
+    noisy_eeg_eog = generate_noisy_data(clean_eeg, 0, artifact_eog, desired_snr_db);
+    artifact_emg = artifact_emg(1:2900, :);
+    noisy_eeg_emg_eog = generate_noisy_data(clean_eeg, artifact_emg, artifact_eog, desired_snr_db);
 
     save('EEG+EMG_noisy_data.mat', 'noisy_eeg_emg');
     save('EEG+EOG_noisy_data.mat', 'noisy_eeg_eog');
+    save('EEG+EMG+EOG_noisy_data.mat', "noisy_eeg_emg_eog");
 
-    % Теперь в noisy_eeg содержится чистый сигнал EEG с добавленным к нему артефактом при заданном SNR
+    % Теперь в noisy_data содержится чистый сигнал EEG с добавленным к нему артефактом при заданном SNR
 end
 
-function noisy_signal = generate_noisy_data(clean_eeg, artifact, snr_db)
+function noisy_signal = generate_noisy_data(clean_eeg, artifact1, artifact2, snr_db)
 
     % Функция для добавления артефактов к чистому сигналу EEG.
 
     % Входные параметры:
-    % clean_eeg - массив с чистым сигналом EEG
+    % clean_eeg - массив с чистым сигналом  EEG
     % artifact - массив с артефактом, который нужно добавить (EOG или EMG)
     % snr_db - желаемое значение SNR в децибелах
     %
@@ -60,21 +63,31 @@ function noisy_signal = generate_noisy_data(clean_eeg, artifact, snr_db)
 
     % Рассчитываем мощность сигнала и шума в линейном масштабе
     signal_power = mean(clean_eeg .^ 2, 2);
-    noise_power = mean(artifact .^ 2, 2);
+    if artifact1 ~= 0
+        noise_power1 = mean(artifact1 .^ 2, 2);
+    else
+        noise_power1 = 1; % для избежания деления на 0 в фомуле lambda_factor
+    end
+    if artifact2 ~= 0
+        noise_power2 = mean(artifact2 .^ 2, 2); % для избежания деления на 0 в фомуле lambda_factor
+    else
+        noise_power2 = 1;
+    end
 
     % Конвертируем SNR из дБ в линейный масштаб
     snr_linear = 10 ^ (snr_db / 10);
     
     % Рассчитываем коэффициент для корректировки мощности шума
-    lambda_factor = sqrt(signal_power / (snr_linear * noise_power));
+    lambda_factor1 = sqrt(signal_power / (snr_linear * noise_power1));
+    lambda_factor2 = sqrt(signal_power / (snr_linear * noise_power2));
     
     % Генерируем зашумленный сигнал
-    noisy_signal = clean_eeg + lambda_factor * artifact;
+    noisy_signal = clean_eeg + lambda_factor1 * artifact1 + lambda_factor2 * artifact2;
     
     % Создаем новое графическое окно
     figure;
     
-    epoch_number_to_show = 24;
+    epoch_number_to_show = 1000;
 
     % Рисуем первый график (чистый сигнал EEG)
     subplot(2, 1, 1); % Создаем первую подграфик
@@ -90,6 +103,6 @@ function noisy_signal = generate_noisy_data(clean_eeg, artifact, snr_db)
     ylabel('Амплитуда');
     title('Зашумленный сигнал EEG');
 
-    clear("noise_power","snr_linear","lambda_factor","signal_power");
+    clear("noise_power1","noise_power2","snr_linear","lambda_factor1","lambda_factor2","signal_power");
     
 end
