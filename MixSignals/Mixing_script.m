@@ -37,9 +37,9 @@ function Mixing_script
 
     % Создаем зашумленный сигнал
     noisy_eeg_emg = generate_noisy_data(clean_eeg, artifact_emg, 0, desired_snr_db);
-    clean_eeg = clean_eeg(1:2900, :);
+    clean_eeg = clean_eeg(1:2900, :); % Приравниваем EEG данные к размеру EOG матрицы
     noisy_eeg_eog = generate_noisy_data(clean_eeg, 0, artifact_eog, desired_snr_db);
-    artifact_emg = artifact_emg(1:2900, :);
+    artifact_emg = artifact_emg(1:2900, :); % Приравниваем EMG данные к размеру остальных
     noisy_eeg_emg_eog = generate_noisy_data(clean_eeg, artifact_emg, artifact_eog, desired_snr_db);
 
     save('EEG+EMG_noisy_data.mat', 'noisy_eeg_emg');
